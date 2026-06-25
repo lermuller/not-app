@@ -6,6 +6,15 @@ import { CATEGORIES, PORTALS } from '../tokens'
 import { getFeeds, trackOpen } from '../utils/storage'
 import { fetchMultipleFeeds } from '../utils/rss'
 
+function renderBold(text) {
+  if (!text) return null
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith('**') && part.endsWith('**')
+      ? <strong key={i} style={{ fontWeight: 700, color: '#FFFFFF' }}>{part.slice(2, -2)}</strong>
+      : <span key={i}>{part}</span>
+  )
+}
+
 export default function FeedView() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -104,7 +113,7 @@ export default function FeedView() {
             {theme.labelPT}
           </span>
         </div>
-        <div style={{ height: '2px', background: theme.primary, borderRadius: theme.radius, marginBottom: '0' }} />
+        <div style={{ height: '2px', background: theme.primary, borderRadius: theme.radius }} />
       </div>
 
       {/* AI briefing banner */}
@@ -142,23 +151,38 @@ export default function FeedView() {
 
       {/* Briefing result */}
       {briefing && (
-        <div style={{ margin: '8px 12px 0', padding: '12px 14px', background: '#1F1B1D', borderRadius: theme.radius, borderTop: `2px solid ${theme.primary}` }}>
-          <p style={{
-            fontFamily: "'Archiv Grotesk', sans-serif",
-            fontSize: '12px',
-            fontWeight: 400,
-            color: 'rgba(255,255,255,0.8)',
-            lineHeight: 1.7,
-            whiteSpace: 'pre-wrap',
-          }}>
-            {briefing}
-          </p>
-          <button
-            onClick={() => setBriefing(null)}
-            style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '10px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-          >
-            close ×
-          </button>
+        <div style={{ margin: '8px 12px 0', background: '#1F1B1D', borderRadius: theme.radius, borderTop: `2px solid ${theme.primary}`, overflow: 'hidden' }}>
+          {/* Close button at top */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 12px 0' }}>
+            <button
+              onClick={() => setBriefing(null)}
+              style={{
+                fontFamily: "'Archiv Grotesk', sans-serif",
+                fontSize: '11px',
+                fontWeight: 500,
+                color: 'rgba(255,255,255,0.4)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '2px 0',
+                letterSpacing: '0.02em',
+              }}
+            >
+              close ×
+            </button>
+          </div>
+          <div style={{ padding: '4px 14px 14px' }}>
+            <p style={{
+              fontFamily: "'Archiv Grotesk', sans-serif",
+              fontSize: '12px',
+              fontWeight: 400,
+              color: 'rgba(255,255,255,0.75)',
+              lineHeight: 1.8,
+              whiteSpace: 'pre-wrap',
+            }}>
+              {renderBold(briefing)}
+            </p>
+          </div>
         </div>
       )}
 
