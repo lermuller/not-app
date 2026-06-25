@@ -333,7 +333,7 @@ export default function FeedView() {
           const cardTheme = isLiving && item.itemCategory
             ? (CATEGORIES[item.itemCategory] || CATEGORIES.all)
             : theme
-          return <NewsCard key={item.id} item={item} theme={cardTheme} />
+          return <NewsCard key={item.id} item={item} theme={cardTheme} showCategoryTag={isLiving} />
         })}
 
         {/* Load more */}

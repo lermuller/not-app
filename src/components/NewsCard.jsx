@@ -1,6 +1,11 @@
 import { timeAgo } from '../utils/rss'
+import { CATEGORIES } from '../tokens'
 
-export default function NewsCard({ item, theme }) {
+export default function NewsCard({ item, theme, showCategoryTag = false }) {
+  const catLabel = showCategoryTag && item.itemCategory
+    ? CATEGORIES[item.itemCategory]?.labelPT
+    : null
+
   return (
     <a
       href={item.link}
@@ -19,17 +24,35 @@ export default function NewsCard({ item, theme }) {
       onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
     >
+      {/* Top row: portal + time */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-        <span style={{
-          fontFamily: "'Archiv Grotesk', sans-serif",
-          fontSize: '9px',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.07em',
-          color: theme.primary,
-        }}>
-          {item.portalName}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{
+            fontFamily: "'Archiv Grotesk', sans-serif",
+            fontSize: '9px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.07em',
+            color: theme.primary,
+          }}>
+            {item.portalName}
+          </span>
+          {catLabel && (
+            <span style={{
+              fontFamily: "'Archiv Grotesk', sans-serif",
+              fontSize: '8px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              padding: '1px 6px',
+              borderRadius: theme.radius,
+              background: theme.primary,
+              color: '#FFFFFF',
+            }}>
+              {catLabel}
+            </span>
+          )}
+        </div>
         <span style={{
           fontFamily: "'Archiv Grotesk', sans-serif",
           fontSize: '9px',

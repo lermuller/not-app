@@ -54,52 +54,52 @@ function LivingFeedCard({ onClick }) {
   const config = getLivingFeedConfig()
   const gradient = getLivingGradient(config.categories)
 
+  // Asymmetric radii: TL 20px, TR 40px, BR 20px, BL 4px
+  const outerRadius = '20px 40px 20px 4px'
+  const innerRadius = '18px 38px 18px 2px'
+
   return (
-    <div style={{ gridColumn: '1 / -1' }}>
-      {/* Gradient border wrapper */}
-      <div
-        onClick={onClick}
-        style={{
-          background: gradient,
-          borderRadius: '22px',
-          padding: '2px',
-          cursor: 'pointer',
-          transition: 'opacity 0.15s',
-        }}
-        onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-      >
-        {/* Inner white card */}
-        <div style={{
-          background: '#FFFFFF',
-          borderRadius: '20px',
-          padding: '20px',
-          minHeight: '170px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-        }}>
-          <RobotIconSmall color="#1F1B1D" size={32} />
-          <div>
-            <div style={{
-              fontFamily: "'Archiv Grotesk', sans-serif",
-              fontSize: '18px',
-              fontWeight: 700,
-              color: '#1F1B1D',
-              letterSpacing: '-0.4px',
-              marginBottom: '6px',
-            }}>
-              Living Feed
-            </div>
-            <div style={{
-              fontFamily: "'Archiv Grotesk', sans-serif",
-              fontSize: '13px',
-              fontWeight: 300,
-              color: '#4A4745',
-              lineHeight: 1.5,
-            }}>
-              A feed based on your preferences.<br />Always changing
-            </div>
+    <div
+      onClick={onClick}
+      style={{
+        background: gradient,
+        borderRadius: outerRadius,
+        padding: '2px',
+        cursor: 'pointer',
+        transition: 'opacity 0.15s',
+      }}
+      onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+    >
+      <div style={{
+        background: '#FFFFFF',
+        borderRadius: innerRadius,
+        padding: '14px',
+        minHeight: '116px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+      }}>
+        <RobotIconSmall color="#1F1B1D" size={28} />
+        <div>
+          <div style={{
+            fontFamily: "'Archiv Grotesk', sans-serif",
+            fontSize: '14px',
+            fontWeight: 700,
+            color: '#1F1B1D',
+            letterSpacing: '-0.3px',
+            marginBottom: '4px',
+          }}>
+            Living Feed
+          </div>
+          <div style={{
+            fontFamily: "'Archiv Grotesk', sans-serif",
+            fontSize: '11px',
+            fontWeight: 300,
+            color: '#4A4745',
+            lineHeight: 1.5,
+          }}>
+            A feed based on your<br />preferences. Always changing
           </div>
         </div>
       </div>
@@ -130,7 +130,20 @@ function FeedCard({ feed, onClick, onDelete }) {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ height: '3px', background: theme.primary, borderRadius: theme.radius, width: '36px' }} />
-        <button onClick={handleDelete} style={{ background: confirming ? '#E05252' : 'transparent', border: 'none', borderRadius: '2px', padding: '2px 5px', cursor: 'pointer', fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, color: confirming ? '#FFFFFF' : '#8C8986', textTransform: 'uppercase', letterSpacing: '0.04em', transition: 'all 0.15s' }}>
+        <button onClick={handleDelete} style={{
+          background: confirming ? '#E05252' : 'transparent',
+          border: confirming ? 'none' : '1px solid #D5D2CE',
+          borderRadius: '4px',
+          padding: '3px 7px',
+          cursor: 'pointer',
+          fontFamily: "'Archiv Grotesk', sans-serif",
+          fontSize: '11px',
+          fontWeight: 600,
+          color: confirming ? '#FFFFFF' : '#4A4745',
+          letterSpacing: '0.02em',
+          transition: 'all 0.15s',
+          lineHeight: 1,
+        }}>
           {confirming ? 'sure?' : '×'}
         </button>
       </div>
@@ -173,7 +186,7 @@ export default function Home() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
 
-            {/* Living Feed — always first, full width */}
+            {/* Living Feed — first slot in grid */}
             <LivingFeedCard onClick={() => navigate('/feed/living')} />
 
             {/* User feeds */}
