@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Header from '../components/Header'
 import NewsCard from '../components/NewsCard'
 import { CATEGORIES, PORTALS } from '../tokens'
-import { getFeeds, trackOpen } from '../utils/storage'
+import { getFeeds, deleteFeed, trackOpen } from '../utils/storage'
 import { fetchMultipleFeeds } from '../utils/rss'
 
 function renderBold(text) {
@@ -15,41 +15,80 @@ function renderBold(text) {
   )
 }
 
+const INITIAL_COUNT = 15
+const LOAD_MORE_COUNT = 15
+
 export default function FeedView() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [feed, setFeed] = useState(null)
-  const [items, setItems] = useState([])
+  const [allItems, setAllItems] = useState([])
+  const [displayCount, setDisplayCount] = useState(INITIAL_COUNT)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)
   const [briefing, setBriefing] = useState(null)
   const [loadingBrief, setLoadingBrief] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const theme = feed ? (CATEGORIES[feed.category] || CATEGORIES.all) : CATEGORIES.all
+  const visibleItems = allItems.slice(0, displayCount)
+  const hasMore = displayCount < allItems.length
 
   useEffect(() => {
     const found = getFeeds().find(f => f.id === id)
     if (!found) { navigate('/'); return }
     setFeed(found)
     trackOpen(found.category)
+    loadFeed(found, 30)
+  }, [id])
 
-    const sources = found.portals
+  function loadFeed(feedData, count) {
+    const sources = feedData.portals
       .map(portalId => {
         const portal = PORTALS[portalId]
         if (!portal) return null
-        const url = portal.feeds[found.category] || portal.feeds.all
+        const url = portal.feeds[feedData.category] || portal.feeds.all
         if (!url) return null
         return { url, portalName: portal.name }
       })
       .filter(Boolean)
 
-    fetchMultipleFeeds(sources)
-      .then(data => { setItems(data); setLoading(false) })
+    fetchMultipleFeeds(sources, count)
+      .then(data => { setAllItems(data); setLoading(false) })
       .catch(err => { setError(err.message); setLoading(false) })
-  }, [id])
+  }
+
+  const handleLoadMore = async () => {
+    if (hasMore) {
+      setDisplayCount(c => c + LOAD_MORE_COUNT)
+      return
+    }
+    // Fetch a fresh batch with higher count if we've shown everything
+    setLoadingMore(true)
+    const sources = feed.portals
+      .map(portalId => {
+        const portal = PORTALS[portalId]
+        if (!portal) return null
+        const url = portal.feeds[feed.category] || portal.feeds.all
+        if (!url) return null
+        return { url, portalName: portal.name }
+      })
+      .filter(Boolean)
+
+    try {
+      const data = await fetchMultipleFeeds(sources, allItems.length + 20)
+      setAllItems(data)
+      setDisplayCount(data.length)
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const handleBriefing = async () => {
-    if (!items.length || loadingBrief) return
+    if (!allItems.length || loadingBrief) return
     setLoadingBrief(true)
     setBriefing(null)
     try {
@@ -59,16 +98,21 @@ export default function FeedView() {
         body: JSON.stringify({
           feedName: feed.name,
           category: theme.labelPT,
-          items: items.slice(0, 15).map(i => ({ title: i.title, portalName: i.portalName })),
+          items: visibleItems.slice(0, 15).map(i => ({ title: i.title, portalName: i.portalName })),
         }),
       })
       const data = await res.json()
       setBriefing(data.briefing)
     } catch {
-      setBriefing('Não foi possível gerar o briefing agora.')
+      setBriefing('Could not generate briefing right now.')
     } finally {
       setLoadingBrief(false)
     }
+  }
+
+  const handleDeleteConfirm = () => {
+    deleteFeed(id)
+    navigate('/')
   }
 
   if (!feed) return null
@@ -77,39 +121,83 @@ export default function FeedView() {
     <div className="app-shell">
       <Header />
 
+      {/* Delete confirmation dialog */}
+      {showDeleteDialog && (
+        <div
+          onClick={() => setShowDeleteDialog(false)}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+            zIndex: 200,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '390px',
+              background: '#F5F4EF',
+              padding: '24px 20px 36px',
+              borderRadius: '2px 2px 0 0',
+            }}
+          >
+            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '16px', fontWeight: 700, color: '#1F1B1D', marginBottom: '6px', letterSpacing: '-0.3px' }}>
+              Delete &ldquo;{feed.name}&rdquo;?
+            </p>
+            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 400, color: '#888580', marginBottom: '20px' }}>
+              This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleDeleteConfirm}
+                style={{
+                  flex: 1, padding: '13px',
+                  fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 600,
+                  background: '#E05252', color: '#FFFFFF',
+                  border: 'none', borderRadius: '1px', cursor: 'pointer',
+                }}
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setShowDeleteDialog(false)}
+                style={{
+                  flex: 1, padding: '13px',
+                  fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 600,
+                  background: '#FFFFFF', color: '#1F1B1D',
+                  border: '1px solid #E0DDD8', borderRadius: '1px', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Feed header */}
       <div style={{ padding: '16px 16px 0', background: '#F5F4EF' }}>
-        <button
-          onClick={() => navigate('/')}
-          style={{ fontSize: '18px', color: '#1F1B1D', marginBottom: '10px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          ←
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <button onClick={() => navigate('/')} style={{ fontSize: '18px', color: '#1F1B1D', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>←</button>
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 500,
+              color: '#AAA8A4', background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+            </svg>
+            Delete
+          </button>
+        </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <h1 style={{
-            fontFamily: "'Archiv Grotesk', sans-serif",
-            fontSize: '24px',
-            fontWeight: 700,
-            color: '#1F1B1D',
-            letterSpacing: '-0.6px',
-            lineHeight: 1.1,
-          }}>
+          <h1 style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '24px', fontWeight: 700, color: '#1F1B1D', letterSpacing: '-0.6px', lineHeight: 1.1 }}>
             {feed.name}
           </h1>
-          <span style={{
-            fontFamily: "'Archiv Grotesk', sans-serif",
-            fontSize: '9px',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.07em',
-            background: theme.primary,
-            color: '#FFFFFF',
-            padding: '3px 9px',
-            borderRadius: theme.radius,
-            flexShrink: 0,
-            marginLeft: '8px',
-            marginBottom: '2px',
-          }}>
+          <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', background: theme.primary, color: '#FFFFFF', padding: '3px 9px', borderRadius: theme.radius, flexShrink: 0, marginLeft: '8px', marginBottom: '2px' }}>
             {theme.labelPT}
           </span>
         </div>
@@ -121,18 +209,7 @@ export default function FeedView() {
         <button
           onClick={handleBriefing}
           disabled={loadingBrief || loading}
-          style={{
-            width: '100%',
-            background: '#1F1B1D',
-            borderRadius: theme.radius,
-            padding: '10px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            border: 'none',
-            cursor: loadingBrief ? 'wait' : 'pointer',
-            opacity: loading ? 0.5 : 1,
-          }}
+          style={{ width: '100%', background: '#1F1B1D', borderRadius: theme.radius, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: 'none', cursor: loadingBrief ? 'wait' : 'pointer', opacity: loading ? 0.5 : 1 }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ color: theme.primary, fontSize: '14px' }}>✦</span>
@@ -141,7 +218,7 @@ export default function FeedView() {
                 {loadingBrief ? 'Generating briefing...' : 'AI briefing'}
               </p>
               <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                {loading ? 'loading feed...' : `${items.length} items today`}
+                {loading ? 'loading...' : `${allItems.length} items`}
               </p>
             </div>
           </div>
@@ -151,35 +228,14 @@ export default function FeedView() {
 
       {/* Briefing result */}
       {briefing && (
-        <div style={{ margin: '8px 12px 0', background: '#1F1B1D', borderRadius: theme.radius, borderTop: `2px solid ${theme.primary}`, overflow: 'hidden' }}>
-          {/* Close button at top */}
+        <div style={{ margin: '8px 12px 0', background: '#1F1B1D', borderRadius: theme.radius, borderTop: '2px solid ' + theme.primary, overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 12px 0' }}>
-            <button
-              onClick={() => setBriefing(null)}
-              style={{
-                fontFamily: "'Archiv Grotesk', sans-serif",
-                fontSize: '11px',
-                fontWeight: 500,
-                color: 'rgba(255,255,255,0.4)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '2px 0',
-                letterSpacing: '0.02em',
-              }}
-            >
+            <button onClick={() => setBriefing(null)} style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 500, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}>
               close ×
             </button>
           </div>
           <div style={{ padding: '4px 14px 14px' }}>
-            <p style={{
-              fontFamily: "'Archiv Grotesk', sans-serif",
-              fontSize: '12px',
-              fontWeight: 400,
-              color: 'rgba(255,255,255,0.75)',
-              lineHeight: 1.8,
-              whiteSpace: 'pre-wrap',
-            }}>
+            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', fontWeight: 400, color: 'rgba(255,255,255,0.75)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
               {renderBold(briefing)}
             </p>
           </div>
@@ -187,20 +243,12 @@ export default function FeedView() {
       )}
 
       {/* Section label */}
-      <p style={{
-        fontFamily: "'Archiv Grotesk', sans-serif",
-        fontSize: '9px',
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        color: '#AAA8A4',
-        padding: '12px 12px 4px',
-      }}>
+      <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#AAA8A4', padding: '12px 12px 4px' }}>
         Latest
       </p>
 
       {/* Feed list */}
-      <div style={{ padding: '0 12px 32px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div style={{ padding: '0 12px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {loading && (
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
             <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#AAA8A4' }}>Loading feed...</p>
@@ -208,17 +256,42 @@ export default function FeedView() {
         )}
         {error && !loading && (
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
-            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#E05252' }}>Could not load feed. Check your connection.</p>
+            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#E05252' }}>Could not load feed.</p>
           </div>
         )}
-        {!loading && !error && items.length === 0 && (
+        {!loading && !error && allItems.length === 0 && (
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
             <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#AAA8A4' }}>No items found.</p>
           </div>
         )}
-        {items.map(item => (
+        {visibleItems.map(item => (
           <NewsCard key={item.id} item={item} theme={theme} />
         ))}
+
+        {/* Load more */}
+        {!loading && allItems.length > 0 && (
+          <button
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            style={{
+              margin: '12px 0 32px',
+              padding: '13px',
+              width: '100%',
+              fontFamily: "'Archiv Grotesk', sans-serif",
+              fontSize: '12px',
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              background: 'transparent',
+              color: loadingMore ? '#AAA8A4' : '#1F1B1D',
+              border: '1px solid ' + (loadingMore ? '#E0DDD8' : '#1F1B1D'),
+              borderRadius: theme.radius,
+              cursor: loadingMore ? 'wait' : 'pointer',
+              transition: 'opacity 0.15s',
+            }}
+          >
+            {loadingMore ? 'Loading...' : hasMore ? `Load more (${allItems.length - displayCount} remaining)` : 'Load more'}
+          </button>
+        )}
       </div>
     </div>
   )

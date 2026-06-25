@@ -19,9 +19,9 @@ export async function fetchFeed(url, portalName, count = 15) {
   }))
 }
 
-export async function fetchMultipleFeeds(sources) {
+export async function fetchMultipleFeeds(sources, count = 15) {
   const results = await Promise.allSettled(
-    sources.map(({ url, portalName }) => fetchFeed(url, portalName))
+    sources.map(({ url, portalName }) => fetchFeed(url, portalName, count))
   )
   const items = results
     .filter(r => r.status === 'fulfilled')

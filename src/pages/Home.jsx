@@ -170,7 +170,7 @@ export default function Home() {
           color: '#1F1B1D',
           letterSpacing: '-0.5px',
           lineHeight: 1.2,
-          marginBottom: '6px',
+          marginBottom: '4px',
         }}>
           Create your own<br />app feed.
         </h1>
@@ -178,9 +178,9 @@ export default function Home() {
           fontFamily: "'Archiv Grotesk', sans-serif",
           fontSize: '13px',
           fontWeight: 300,
-          color: '#888580',
+          color: '#1F1B1D',
           lineHeight: 1.6,
-          marginBottom: '28px',
+          marginBottom: '24px',
         }}>
           This is a challenge.<br />
           not for you. but for<br />
