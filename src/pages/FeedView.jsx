@@ -39,6 +39,8 @@ export default function FeedView() {
   const [loadingBrief, setLoadingBrief] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
+  const [filtering, setFiltering] = useState(false)
+
   const isLiving = id === 'living'
   const theme = feed ? (CATEGORIES[feed.category] || CATEGORIES.all) : CATEGORIES.all
   const visibleItems = allItems.slice(0, displayCount)
@@ -97,6 +99,28 @@ export default function FeedView() {
     loadFeed(found, 30)
   }, [id])
 
+  async function filterByCategory(items, category) {
+    if (!category || category === 'all' || items.length === 0) return items
+    setFiltering(true)
+    try {
+      const res = await fetch('/api/filter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category,
+          articles: items.map(item => ({ title: item.title })),
+        }),
+      })
+      const data = await res.json()
+      const filtered = data.indices.map(i => items[i]).filter(Boolean)
+      return filtered.length > 0 ? filtered : items
+    } catch {
+      return items
+    } finally {
+      setFiltering(false)
+    }
+  }
+
   function loadFeed(feedData, count) {
     const sources = feedData.portals
       .map(portalId => {
@@ -109,7 +133,11 @@ export default function FeedView() {
       .filter(Boolean)
 
     fetchMultipleFeeds(sources, count)
-      .then(data => { setAllItems(data); setLoading(false) })
+      .then(async data => {
+        setLoading(false)
+        const filtered = await filterByCategory(data, feedData.category)
+        setAllItems(filtered)
+      })
       .catch(err => { setError(err.message); setLoading(false) })
   }
 
@@ -322,22 +350,24 @@ export default function FeedView() {
 
       {/* Feed list */}
       <div style={{ padding: '0 12px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        {loading && (
+        {(loading || filtering) && (
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
-            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#6B6966' }}>Loading feed...</p>
+            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#6B6966' }}>
+              {filtering ? `Filtering for ${theme.labelPT}...` : 'Loading feed...'}
+            </p>
           </div>
         )}
-        {error && !loading && (
+        {error && !loading && !filtering && (
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
             <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#E05252' }}>Could not load feed.</p>
           </div>
         )}
-        {!loading && !error && allItems.length === 0 && (
+        {!loading && !filtering && !error && allItems.length === 0 && (
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
             <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#6B6966' }}>No items found.</p>
           </div>
         )}
-        {visibleItems.map(item => {
+        {!filtering && visibleItems.map(item => {
           const cardTheme = isLiving && item.itemCategory
             ? (CATEGORIES[item.itemCategory] || CATEGORIES.all)
             : theme
@@ -353,7 +383,7 @@ export default function FeedView() {
         })}
 
         {/* Load more */}
-        {!loading && allItems.length > 0 && (
+        {!loading && !filtering && allItems.length > 0 && (
           <button
             onClick={handleLoadMore}
             disabled={loadingMore}
