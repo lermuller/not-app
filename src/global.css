@@ -33,7 +33,7 @@
 
 :root {
   --base-font: 'Archiv Grotesk', sans-serif;
-  --base-bg: #F5F4EF;
+  --base-bg: #FAFAFA;
   --base-ink: #1F1B1D;
   --base-muted: #4A4745;
   --base-border: #E0DDD8;
@@ -43,9 +43,11 @@
 
 html, body {
   height: 100%;
-  background-color: #C8C6C1;
-  background-image: radial-gradient(circle, rgba(31,27,29,0.22) 0.65px, transparent 0.65px);
-  background-size: 3.5px 3.5px;
+  background-color: #F0EEEB;
+  background-image: url('/bg_page.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 body {
@@ -62,7 +64,6 @@ body {
   padding: 16px;
 }
 
-/* Outer shell: transparent so dither shows in the 8px gap */
 .app-shell {
   width: 100%;
   max-width: var(--app-max-width);
@@ -74,7 +75,6 @@ body {
   overflow: hidden;
 }
 
-/* Content below the gap — has the app background color */
 .app-content {
   background: var(--base-bg);
   flex: 1;

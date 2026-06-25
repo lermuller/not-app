@@ -91,12 +91,27 @@ export default function Home() {
     <div className="app-shell">
       <Header />
       <div className="app-content">
-        <div style={{ padding: '24px 16px 32px', flex: 1 }}>
-          <h1 style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '22px', fontWeight: 700, color: '#1F1B1D', letterSpacing: '-0.5px', lineHeight: 1.2, marginBottom: '4px' }}>
-            Create your own<br />app feed.
+        <div style={{ padding: '28px 20px 32px', flex: 1 }}>
+          <h1 style={{
+            fontFamily: "'Archiv Grotesk', sans-serif",
+            fontSize: '32px',
+            fontWeight: 700,
+            color: '#1F1B1D',
+            letterSpacing: '-0.8px',
+            lineHeight: 1.15,
+            marginBottom: '8px',
+          }}>
+            Create your own app feed.
           </h1>
-          <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 300, color: '#1F1B1D', lineHeight: 1.6, marginBottom: '24px' }}>
-            This is a challenge.<br />not for you. but for<br />the future of apps.
+          <p style={{
+            fontFamily: "'Archiv Grotesk', sans-serif",
+            fontSize: '18px',
+            fontWeight: 300,
+            color: '#1F1B1D',
+            lineHeight: 1.5,
+            marginBottom: '32px',
+          }}>
+            This is a challenge, not for<br />you, but for the future of apps.
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
