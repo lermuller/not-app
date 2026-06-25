@@ -1,7 +1,7 @@
 import { timeAgo } from '../utils/rss'
 import { CATEGORIES } from '../tokens'
 
-export default function NewsCard({ item, theme, showCategoryTag = false }) {
+export default function NewsCard({ item, theme, showCategoryTag = false, onArticleClick = null }) {
   const catLabel = showCategoryTag && item.itemCategory
     ? CATEGORIES[item.itemCategory]?.labelPT
     : null
@@ -11,6 +11,7 @@ export default function NewsCard({ item, theme, showCategoryTag = false }) {
       href={item.link}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => onArticleClick?.(item.itemCategory)}
       style={{
         display: 'block',
         background: '#FFFFFF',

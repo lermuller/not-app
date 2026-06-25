@@ -132,19 +132,27 @@ function FeedCard({ feed, onClick, onDelete }) {
         <div style={{ height: '3px', background: theme.primary, borderRadius: theme.radius, width: '36px' }} />
         <button onClick={handleDelete} style={{
           background: confirming ? '#E05252' : 'transparent',
-          border: confirming ? 'none' : '1px solid #D5D2CE',
+          border: 'none',
           borderRadius: '4px',
-          padding: '3px 7px',
+          padding: '4px 6px',
           cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
           fontFamily: "'Archiv Grotesk', sans-serif",
-          fontSize: '11px',
+          fontSize: '10px',
           fontWeight: 600,
           color: confirming ? '#FFFFFF' : '#4A4745',
-          letterSpacing: '0.02em',
           transition: 'all 0.15s',
-          lineHeight: 1,
         }}>
-          {confirming ? 'sure?' : '×'}
+          {confirming ? 'sure?' : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Delete feed">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14H6L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/>
+              <path d="M9 6V4h6v2"/>
+            </svg>
+          )}
         </button>
       </div>
 

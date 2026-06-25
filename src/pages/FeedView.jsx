@@ -236,10 +236,18 @@ export default function FeedView() {
           {!isLiving && (
             <button
               onClick={() => setShowDeleteDialog(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: '5px', fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 500, color: '#6B6966', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                fontFamily: "'Archiv Grotesk', sans-serif",
+                fontSize: '13px', fontWeight: 500,
+                color: '#4A4745',
+                background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+              }}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/>
+                <path d="M9 6V4h6v2"/>
               </svg>
               Delete
             </button>
@@ -333,7 +341,15 @@ export default function FeedView() {
           const cardTheme = isLiving && item.itemCategory
             ? (CATEGORIES[item.itemCategory] || CATEGORIES.all)
             : theme
-          return <NewsCard key={item.id} item={item} theme={cardTheme} showCategoryTag={isLiving} />
+          return (
+            <NewsCard
+              key={item.id}
+              item={item}
+              theme={cardTheme}
+              showCategoryTag={isLiving}
+              onArticleClick={isLiving ? (cat) => { if (cat) trackOpen(cat) } : null}
+            />
+          )
         })}
 
         {/* Load more */}
