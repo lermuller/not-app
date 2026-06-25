@@ -60,9 +60,14 @@ export default function FeedView() {
             seen.add(key)
             const portal = PORTALS[portalId]
             if (!portal) return
-            const url = portal.feeds[f.category] || portal.feeds.all
+            const specificUrl = portal.feeds[f.category]
+            const fallbackUrl = portal.feeds.all
+            const url = specificUrl || fallbackUrl
             if (!url) return
-            sources.push({ url, portalName: portal.name, category: f.category })
+            // Only tag with category if we have a specific feed for it
+            // Otherwise tag as null so cards don't show a wrong category badge
+            const category = specificUrl ? f.category : null
+            sources.push({ url, portalName: portal.name, category })
           })
         })
       } else {
@@ -70,16 +75,18 @@ export default function FeedView() {
         config.portals.forEach(portalId => {
           const portal = PORTALS[portalId]
           if (!portal) return
-          const url = portal.feeds[config.primaryCategory] || portal.feeds.all
+          const specificUrl = portal.feeds[config.primaryCategory]
+          const url = specificUrl || portal.feeds.all
           if (!url) return
-          sources.push({ url, portalName: portal.name, category: config.primaryCategory })
+          const category = specificUrl ? config.primaryCategory : null
+          sources.push({ url, portalName: portal.name, category })
         })
       }
 
       const config = getLivingFeedConfig()
       const virtualFeed = {
         id: 'living',
-        name: 'Para você',
+        name: 'Living Feed',
         portals: [...new Set(allFeeds.flatMap(f => f.portals))],
         category: config.primaryCategory || 'all',
         categories: config.categories,
@@ -287,7 +294,7 @@ export default function FeedView() {
           </h1>
           {isLiving ? (
             <div style={{ display: 'flex', gap: '4px', marginBottom: '2px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              {(feed.categories || []).map(catId => {
+              {[...new Set(allItems.map(i => i.itemCategory).filter(Boolean))].map(catId => {
                 const cat = CATEGORIES[catId]
                 return cat ? (
                   <span key={catId} style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', background: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.95)', padding: '3px 8px', borderRadius: '20px' }}>
