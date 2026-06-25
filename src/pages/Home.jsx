@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Header from '../components/Header'
-import { getFeeds, deleteFeed } from '../utils/storage'
+import { getFeeds, deleteFeed, getLivingFeedConfig } from '../utils/storage'
 import { CATEGORIES } from '../tokens'
 
-const RobotIconSmall = ({ color = '#1F1B1D' }) => (
-  <svg width="12" height="12" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+const RobotIconSmall = ({ color = '#1F1B1D', size = 12 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <path d="M30.4748 16.76H28.9548V24.38H30.4748V16.76Z" fill={color}/>
     <path d="M28.9548 1.52002H27.4248V7.62002H28.9548V1.52002Z" fill={color}/>
     <path d="M27.4248 16.76H28.9548V15.24H27.4248V13.71H25.9048V28.95H27.4248V25.9H28.9548V24.38H27.4248V16.76Z" fill={color}/>
@@ -41,6 +41,73 @@ const RobotIconSmall = ({ color = '#1F1B1D' }) => (
   </svg>
 )
 
+function getLivingGradient(categories) {
+  if (!categories || categories.length === 0) {
+    return 'linear-gradient(135deg, #1AA275 0%, #167BFF 50%, #8F3AF6 100%)'
+  }
+  const colors = categories.slice(0, 2).map(catId => CATEGORIES[catId]?.primary).filter(Boolean)
+  if (colors.length === 1) return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[0]}99 100%)`
+  return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`
+}
+
+function LivingFeedCard({ onClick }) {
+  const config = getLivingFeedConfig()
+  const gradient = getLivingGradient(config.categories)
+  const catLabels = config.categories.map(catId => CATEGORIES[catId]?.labelPT).filter(Boolean)
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        gridColumn: '1 / -1',
+        background: gradient,
+        borderRadius: '2px',
+        padding: '16px',
+        cursor: 'pointer',
+        minHeight: '130px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'opacity 0.15s',
+      }}
+      onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+    >
+      {/* Radial light overlay */}
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 75% 25%, rgba(255,255,255,0.12), transparent 60%)', pointerEvents: 'none' }} />
+
+      {/* Top row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <RobotIconSmall color="rgba(255,255,255,0.7)" size={16} />
+        <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          Living feed
+        </span>
+      </div>
+
+      {/* Bottom */}
+      <div>
+        {catLabels.length > 0 && (
+          <div style={{ display: 'flex', gap: '5px', marginBottom: '8px', flexWrap: 'wrap' }}>
+            {catLabels.map(label => (
+              <span key={label} style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px', background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.95)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
+        <div style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '17px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.4px' }}>
+          Para você
+        </div>
+        <div style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginTop: '2px' }}>
+          {catLabels.length > 0 ? 'Aprende com suas preferências' : 'Abra alguns feeds para personalizar'}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function FeedCard({ feed, onClick, onDelete }) {
   const theme = CATEGORIES[feed.category] || CATEGORIES.all
   const [confirming, setConfirming] = useState(false)
@@ -48,11 +115,12 @@ function FeedCard({ feed, onClick, onDelete }) {
   const handleDelete = (e) => {
     e.stopPropagation()
     if (confirming) { onDelete(feed.id) }
-    else {
-      setConfirming(true)
-      setTimeout(() => setConfirming(false), 2500)
-    }
+    else { setConfirming(true); setTimeout(() => setConfirming(false), 2500) }
   }
+
+  const suggestedLabel = feed.isSuggested && feed.suggestedCategories?.length > 0
+    ? feed.suggestedCategories.map(catId => CATEGORIES[catId]?.labelPT).filter(Boolean).join(' + ')
+    : null
 
   return (
     <div
@@ -63,16 +131,21 @@ function FeedCard({ feed, onClick, onDelete }) {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ height: '3px', background: theme.primary, borderRadius: theme.radius, width: '36px' }} />
-        <button onClick={handleDelete} style={{ background: confirming ? '#E05252' : 'transparent', border: 'none', borderRadius: '2px', padding: '2px 5px', cursor: 'pointer', fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, color: confirming ? '#FFFFFF' : '#8C8986', textTransform: 'uppercase', letterSpacing: '0.04em', transition: 'all 0.15s', flexShrink: 0 }}>
+        <button onClick={handleDelete} style={{ background: confirming ? '#E05252' : 'transparent', border: 'none', borderRadius: '2px', padding: '2px 5px', cursor: 'pointer', fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, color: confirming ? '#FFFFFF' : '#8C8986', textTransform: 'uppercase', letterSpacing: '0.04em', transition: 'all 0.15s' }}>
           {confirming ? 'sure?' : '×'}
         </button>
       </div>
+
+      {/* AI badge with category label */}
       {feed.isSuggested && (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#1F1B1D', borderRadius: theme.radius, padding: '2px 6px', alignSelf: 'flex-start' }}>
-          <RobotIconSmall color="#FFFFFF" />
-          <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '8px', fontWeight: 600, color: '#FFFFFF', letterSpacing: '0.05em', textTransform: 'uppercase' }}>AI</span>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#1F1B1D', borderRadius: theme.radius, padding: '2px 7px', alignSelf: 'flex-start' }}>
+          <RobotIconSmall color="#FFFFFF" size={10} />
+          <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, color: '#FFFFFF', letterSpacing: '0.04em' }}>
+            {suggestedLabel || 'AI'}
+          </span>
         </div>
       )}
+
       <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 700, color: '#1F1B1D', letterSpacing: '-0.2px', marginTop: 'auto' }}>{feed.name}</span>
       <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '10px', fontWeight: 400, color: '#6B6966', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{theme.labelPT}</span>
     </div>
@@ -92,33 +165,24 @@ export default function Home() {
       <Header />
       <div className="app-content">
         <div style={{ padding: '28px 20px 32px', flex: 1 }}>
-          <h1 style={{
-            fontFamily: "'Archiv Grotesk', sans-serif",
-            fontSize: '32px',
-            fontWeight: 700,
-            color: '#1F1B1D',
-            letterSpacing: '-0.8px',
-            lineHeight: 1.15,
-            marginBottom: '8px',
-          }}>
+          <h1 style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '32px', fontWeight: 700, color: '#1F1B1D', letterSpacing: '-0.8px', lineHeight: 1.15, marginBottom: '8px' }}>
             Create your own app feed.
           </h1>
-          <p style={{
-            fontFamily: "'Archiv Grotesk', sans-serif",
-            fontSize: '18px',
-            fontWeight: 300,
-            color: '#1F1B1D',
-            lineHeight: 1.5,
-            marginBottom: '32px',
-          }}>
+          <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '18px', fontWeight: 300, color: '#1F1B1D', lineHeight: 1.5, marginBottom: '32px' }}>
             This is a challenge, not for<br />you, but for the future of apps.
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+
+            {/* Living Feed — always first, full width */}
+            <LivingFeedCard onClick={() => navigate('/feed/living')} />
+
+            {/* User feeds */}
             {feeds.map(feed => (
               <FeedCard key={feed.id} feed={feed} onClick={() => navigate(`/feed/${feed.id}`)} onDelete={handleDelete} />
             ))}
 
+            {/* Create new */}
             <div onClick={() => navigate('/new')} style={{ border: '1px solid #E0DDD8', borderRadius: '1px', padding: '14px', cursor: 'pointer', background: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', minHeight: '120px', transition: 'opacity 0.15s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
               <span style={{ fontSize: '22px', color: '#8C8986', lineHeight: 1 }}>+</span>
               <div style={{ textAlign: 'center' }}>
@@ -127,6 +191,7 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Suggestion */}
             <div onClick={() => navigate('/suggestion')} style={{ border: '1px solid #1F1B1D', borderRadius: '1px', padding: '14px', cursor: 'pointer', background: '#1F1B1D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', minHeight: '120px', transition: 'opacity 0.15s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
               <RobotIconSmall color="#FFFFFF" />
               <div style={{ textAlign: 'center' }}>
@@ -134,6 +199,7 @@ export default function Home() {
                 <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>feed</p>
               </div>
             </div>
+
           </div>
         </div>
       </div>

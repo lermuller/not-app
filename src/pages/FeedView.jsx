@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import Header from '../components/Header'
 import NewsCard from '../components/NewsCard'
 import { CATEGORIES, PORTALS } from '../tokens'
-import { getFeeds, deleteFeed, trackOpen } from '../utils/storage'
+import { getFeeds, deleteFeed, trackOpen, getLivingFeedConfig } from '../utils/storage'
 import { fetchMultipleFeeds } from '../utils/rss'
 
 function renderBold(text) {
@@ -13,6 +13,14 @@ function renderBold(text) {
       ? <strong key={i} style={{ fontWeight: 700, color: '#FFFFFF' }}>{part.slice(2, -2)}</strong>
       : <span key={i}>{part}</span>
   )
+}
+
+function getLivingGradient(categories) {
+  if (!categories || categories.length === 0)
+    return 'linear-gradient(135deg, #1AA275 0%, #167BFF 50%, #8F3AF6 100%)'
+  const colors = categories.slice(0, 2).map(c => CATEGORIES[c]?.primary).filter(Boolean)
+  if (colors.length === 1) return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[0]}99 100%)`
+  return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`
 }
 
 const INITIAL_COUNT = 15
@@ -31,11 +39,36 @@ export default function FeedView() {
   const [loadingBrief, setLoadingBrief] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
+  const isLiving = id === 'living'
   const theme = feed ? (CATEGORIES[feed.category] || CATEGORIES.all) : CATEGORIES.all
   const visibleItems = allItems.slice(0, displayCount)
   const hasMore = displayCount < allItems.length
 
   useEffect(() => {
+    if (isLiving) {
+      const config = getLivingFeedConfig()
+      const virtualFeed = {
+        id: 'living',
+        name: 'Para você',
+        portals: config.portals,
+        category: config.primaryCategory || 'all',
+        categories: config.categories,
+        isLiving: true,
+      }
+      setFeed(virtualFeed)
+      const sources = config.portals.map(portalId => {
+        const portal = PORTALS[portalId]
+        if (!portal) return null
+        const url = portal.feeds[config.primaryCategory] || portal.feeds.all
+        if (!url) return null
+        return { url, portalName: portal.name }
+      }).filter(Boolean)
+      fetchMultipleFeeds(sources, 30)
+        .then(data => { setAllItems(data); setLoading(false) })
+        .catch(err => { setError(err.message); setLoading(false) })
+      return
+    }
+
     const found = getFeeds().find(f => f.id === id)
     if (!found) { navigate('/'); return }
     setFeed(found)
@@ -176,32 +209,43 @@ export default function FeedView() {
       )}
 
       <div className="app-content">{/* Feed header */}
-      <div style={{ padding: '16px 16px 0', background: '#F5F4EF' }}>
+      <div style={{ padding: '16px 16px 0', background: isLiving ? getLivingGradient(feed?.categories) : '#FAFAFA' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <button onClick={() => navigate('/')} style={{ fontSize: '18px', color: '#1F1B1D', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>←</button>
-          <button
-            onClick={() => setShowDeleteDialog(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '5px',
-              fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 500,
-              color: '#6B6966', background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-            </svg>
-            Delete
-          </button>
+          <button onClick={() => navigate('/')} style={{ fontSize: '18px', color: isLiving ? 'rgba(255,255,255,0.9)' : '#1F1B1D', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>←</button>
+          {!isLiving && (
+            <button
+              onClick={() => setShowDeleteDialog(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 500, color: '#6B6966', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+              Delete
+            </button>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <h1 style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '24px', fontWeight: 700, color: '#1F1B1D', letterSpacing: '-0.6px', lineHeight: 1.1 }}>
+          <h1 style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '24px', fontWeight: 700, color: isLiving ? '#FFFFFF' : '#1F1B1D', letterSpacing: '-0.6px', lineHeight: 1.1 }}>
             {feed.name}
           </h1>
-          <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', background: theme.primary, color: '#FFFFFF', padding: '3px 9px', borderRadius: theme.radius, flexShrink: 0, marginLeft: '8px', marginBottom: '2px' }}>
-            {theme.labelPT}
-          </span>
+          {isLiving ? (
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '2px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {(feed.categories || []).map(catId => {
+                const cat = CATEGORIES[catId]
+                return cat ? (
+                  <span key={catId} style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', background: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.95)', padding: '3px 8px', borderRadius: '20px' }}>
+                    {cat.labelPT}
+                  </span>
+                ) : null
+              })}
+            </div>
+          ) : (
+            <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', background: theme.primary, color: '#FFFFFF', padding: '3px 9px', borderRadius: theme.radius, flexShrink: 0, marginLeft: '8px', marginBottom: '2px' }}>
+              {theme.labelPT}
+            </span>
+          )}
         </div>
-        <div style={{ height: '2px', background: theme.primary, borderRadius: theme.radius }} />
+        <div style={{ height: '2px', background: isLiving ? 'rgba(255,255,255,0.3)' : theme.primary, borderRadius: isLiving ? '1px' : theme.radius }} />
       </div>
 
       {/* AI briefing banner */}

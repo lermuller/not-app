@@ -42,3 +42,18 @@ export function getDominantCategories() {
 export function generateId() {
   return `feed_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 }
+
+export function getLivingFeedConfig() {
+  const behavior = getBehavior()
+  const feeds = getFeeds()
+  const topCategories = Object.entries(behavior)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([cat]) => cat)
+  const allPortals = [...new Set(feeds.flatMap(f => f.portals))]
+  return {
+    categories: topCategories,
+    portals: allPortals.length > 0 ? allPortals : ['g1', 'cnn', 'techcrunch', 'folha'],
+    primaryCategory: topCategories[0] || 'all',
+  }
+}

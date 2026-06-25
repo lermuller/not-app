@@ -1,4 +1,17 @@
 export const CATEGORIES = {
+  living: {
+    id: 'living',
+    label: 'For you',
+    labelPT: 'Para você',
+    primary: '#1F1B1D',
+    secondary: '#E0DDD8',
+    cardBg: '#FFFFFF',
+    radius: '1px',
+    font: "'Archiv Grotesk', sans-serif",
+    headlineWeight: 600,
+    headlineTransform: 'none',
+    headlineTracking: '-0.2px',
+  },
   all: {
     id: 'all',
     label: 'All',

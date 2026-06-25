@@ -79,6 +79,7 @@ export default function SuggestionFeed() {
         category: dominantCat,
         createdAt: new Date().toISOString(),
         isSuggested: true,
+        suggestedCategories: dominantCat !== 'all' ? Object.entries(behavior).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([c])=>c) : [],
       }
       saveFeed(feed)
       setTimeout(() => navigate(`/feed/${feed.id}`), 400)
@@ -92,6 +93,7 @@ export default function SuggestionFeed() {
         category: topCat,
         createdAt: new Date().toISOString(),
         isSuggested: true,
+        suggestedCategories: dominantCat !== 'all' ? Object.entries(behavior).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([c])=>c) : [],
       }
       saveFeed(feed)
       setTimeout(() => navigate(`/feed/${feed.id}`), 400)
