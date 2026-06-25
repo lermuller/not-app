@@ -33,7 +33,7 @@ export default function NewsCard({ item, theme }) {
         <span style={{
           fontFamily: "'Archiv Grotesk', sans-serif",
           fontSize: '9px',
-          color: '#AAA8A4',
+          color: '#6B6966',
         }}>
           {timeAgo(item.pubDate)}
         </span>
@@ -57,7 +57,7 @@ export default function NewsCard({ item, theme }) {
           fontFamily: "'Archiv Grotesk', sans-serif",
           fontSize: '11px',
           fontWeight: 400,
-          color: '#888580',
+          color: '#4A4745',
           lineHeight: 1.5,
         }}>
           {item.description}

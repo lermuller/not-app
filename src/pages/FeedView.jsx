@@ -144,7 +144,7 @@ export default function FeedView() {
             <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '16px', fontWeight: 700, color: '#1F1B1D', marginBottom: '6px', letterSpacing: '-0.3px' }}>
               Delete &ldquo;{feed.name}&rdquo;?
             </p>
-            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 400, color: '#888580', marginBottom: '20px' }}>
+            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 400, color: '#4A4745', marginBottom: '20px' }}>
               This action cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -175,7 +175,7 @@ export default function FeedView() {
         </div>
       )}
 
-      {/* Feed header */}
+      <div className="app-content">{/* Feed header */}
       <div style={{ padding: '16px 16px 0', background: '#F5F4EF' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           <button onClick={() => navigate('/')} style={{ fontSize: '18px', color: '#1F1B1D', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>←</button>
@@ -184,7 +184,7 @@ export default function FeedView() {
             style={{
               display: 'flex', alignItems: 'center', gap: '5px',
               fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 500,
-              color: '#AAA8A4', background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              color: '#6B6966', background: 'none', border: 'none', cursor: 'pointer', padding: 0,
             }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -243,7 +243,7 @@ export default function FeedView() {
       )}
 
       {/* Section label */}
-      <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#AAA8A4', padding: '12px 12px 4px' }}>
+      <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B6966', padding: '12px 12px 4px' }}>
         Latest
       </p>
 
@@ -251,7 +251,7 @@ export default function FeedView() {
       <div style={{ padding: '0 12px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {loading && (
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
-            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#AAA8A4' }}>Loading feed...</p>
+            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#6B6966' }}>Loading feed...</p>
           </div>
         )}
         {error && !loading && (
@@ -261,7 +261,7 @@ export default function FeedView() {
         )}
         {!loading && !error && allItems.length === 0 && (
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
-            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#AAA8A4' }}>No items found.</p>
+            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#6B6966' }}>No items found.</p>
           </div>
         )}
         {visibleItems.map(item => (
@@ -282,7 +282,7 @@ export default function FeedView() {
               fontWeight: 600,
               letterSpacing: '0.02em',
               background: 'transparent',
-              color: loadingMore ? '#AAA8A4' : '#1F1B1D',
+              color: loadingMore ? '#6B6966' : '#1F1B1D',
               border: '1px solid ' + (loadingMore ? '#E0DDD8' : '#1F1B1D'),
               borderRadius: theme.radius,
               cursor: loadingMore ? 'wait' : 'pointer',
@@ -292,6 +292,7 @@ export default function FeedView() {
             {loadingMore ? 'Loading...' : hasMore ? `Load more (${allItems.length - displayCount} remaining)` : 'Load more'}
           </button>
         )}
+      </div>
       </div>
     </div>
   )

@@ -47,9 +47,8 @@ function FeedCard({ feed, onClick, onDelete }) {
 
   const handleDelete = (e) => {
     e.stopPropagation()
-    if (confirming) {
-      onDelete(feed.id)
-    } else {
+    if (confirming) { onDelete(feed.id) }
+    else {
       setConfirming(true)
       setTimeout(() => setConfirming(false), 2500)
     }
@@ -58,90 +57,24 @@ function FeedCard({ feed, onClick, onDelete }) {
   return (
     <div
       onClick={onClick}
-      style={{
-        border: `1px solid ${theme.primary}`,
-        borderRadius: theme.radius,
-        padding: '14px',
-        cursor: 'pointer',
-        background: '#FFFFFF',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        minHeight: '120px',
-        transition: 'opacity 0.15s',
-        position: 'relative',
-      }}
+      style={{ border: `1px solid ${theme.primary}`, borderRadius: theme.radius, padding: '14px', cursor: 'pointer', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '120px', transition: 'opacity 0.15s', position: 'relative' }}
       onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
     >
-      {/* Top row: AI badge + delete */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ height: '3px', background: theme.primary, borderRadius: theme.radius, width: '36px' }} />
-        <button
-          onClick={handleDelete}
-          style={{
-            background: confirming ? '#E05252' : 'transparent',
-            border: 'none',
-            borderRadius: '2px',
-            padding: '2px 5px',
-            cursor: 'pointer',
-            fontFamily: "'Archiv Grotesk', sans-serif",
-            fontSize: '9px',
-            fontWeight: 600,
-            color: confirming ? '#FFFFFF' : '#C8C5C0',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            transition: 'all 0.15s',
-            flexShrink: 0,
-          }}
-        >
+        <button onClick={handleDelete} style={{ background: confirming ? '#E05252' : 'transparent', border: 'none', borderRadius: '2px', padding: '2px 5px', cursor: 'pointer', fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, color: confirming ? '#FFFFFF' : '#8C8986', textTransform: 'uppercase', letterSpacing: '0.04em', transition: 'all 0.15s', flexShrink: 0 }}>
           {confirming ? 'sure?' : '×'}
         </button>
       </div>
-
-      {/* AI badge */}
       {feed.isSuggested && (
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '3px',
-          background: '#1F1B1D',
-          borderRadius: theme.radius,
-          padding: '2px 6px',
-          alignSelf: 'flex-start',
-        }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#1F1B1D', borderRadius: theme.radius, padding: '2px 6px', alignSelf: 'flex-start' }}>
           <RobotIconSmall color="#FFFFFF" />
-          <span style={{
-            fontFamily: "'Archiv Grotesk', sans-serif",
-            fontSize: '8px',
-            fontWeight: 600,
-            color: '#FFFFFF',
-            letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-          }}>AI</span>
+          <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '8px', fontWeight: 600, color: '#FFFFFF', letterSpacing: '0.05em', textTransform: 'uppercase' }}>AI</span>
         </div>
       )}
-
-      <span style={{
-        fontFamily: "'Archiv Grotesk', sans-serif",
-        fontSize: '13px',
-        fontWeight: 700,
-        color: '#1F1B1D',
-        letterSpacing: '-0.2px',
-        marginTop: 'auto',
-      }}>
-        {feed.name}
-      </span>
-      <span style={{
-        fontFamily: "'Archiv Grotesk', sans-serif",
-        fontSize: '10px',
-        fontWeight: 400,
-        color: '#AAA8A4',
-        textTransform: 'uppercase',
-        letterSpacing: '0.06em',
-      }}>
-        {theme.labelPT}
-      </span>
+      <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 700, color: '#1F1B1D', letterSpacing: '-0.2px', marginTop: 'auto' }}>{feed.name}</span>
+      <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '10px', fontWeight: 400, color: '#6B6966', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{theme.labelPT}</span>
     </div>
   )
 }
@@ -150,108 +83,41 @@ export default function Home() {
   const navigate = useNavigate()
   const [feeds, setFeeds] = useState([])
 
-  useEffect(() => {
-    setFeeds(getFeeds())
-  }, [])
+  useEffect(() => { setFeeds(getFeeds()) }, [])
 
-  const handleDelete = (id) => {
-    deleteFeed(id)
-    setFeeds(getFeeds())
-  }
+  const handleDelete = (id) => { deleteFeed(id); setFeeds(getFeeds()) }
 
   return (
     <div className="app-shell">
       <Header />
-      <div style={{ padding: '24px 16px 32px', flex: 1 }}>
-        <h1 style={{
-          fontFamily: "'Archiv Grotesk', sans-serif",
-          fontSize: '22px',
-          fontWeight: 700,
-          color: '#1F1B1D',
-          letterSpacing: '-0.5px',
-          lineHeight: 1.2,
-          marginBottom: '4px',
-        }}>
-          Create your own<br />app feed.
-        </h1>
-        <p style={{
-          fontFamily: "'Archiv Grotesk', sans-serif",
-          fontSize: '13px',
-          fontWeight: 300,
-          color: '#1F1B1D',
-          lineHeight: 1.6,
-          marginBottom: '24px',
-        }}>
-          This is a challenge.<br />
-          not for you. but for<br />
-          the future of apps.
-        </p>
+      <div className="app-content">
+        <div style={{ padding: '24px 16px 32px', flex: 1 }}>
+          <h1 style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '22px', fontWeight: 700, color: '#1F1B1D', letterSpacing: '-0.5px', lineHeight: 1.2, marginBottom: '4px' }}>
+            Create your own<br />app feed.
+          </h1>
+          <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 300, color: '#1F1B1D', lineHeight: 1.6, marginBottom: '24px' }}>
+            This is a challenge.<br />not for you. but for<br />the future of apps.
+          </p>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '8px',
-        }}>
-          {feeds.map(feed => (
-            <FeedCard
-              key={feed.id}
-              feed={feed}
-              onClick={() => navigate(`/feed/${feed.id}`)}
-              onDelete={handleDelete}
-            />
-          ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+            {feeds.map(feed => (
+              <FeedCard key={feed.id} feed={feed} onClick={() => navigate(`/feed/${feed.id}`)} onDelete={handleDelete} />
+            ))}
 
-          {/* Create new */}
-          <div
-            onClick={() => navigate('/new')}
-            style={{
-              border: '1px solid #E0DDD8',
-              borderRadius: '1px',
-              padding: '14px',
-              cursor: 'pointer',
-              background: '#FFFFFF',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              minHeight: '120px',
-              transition: 'opacity 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-          >
-            <span style={{ fontSize: '22px', color: '#C8C5C0', lineHeight: 1 }}>+</span>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', fontWeight: 600, color: '#1F1B1D' }}>Create</p>
-              <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 400, color: '#AAA8A4' }}>new feed</p>
+            <div onClick={() => navigate('/new')} style={{ border: '1px solid #E0DDD8', borderRadius: '1px', padding: '14px', cursor: 'pointer', background: '#FFFFFF', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', minHeight: '120px', transition: 'opacity 0.15s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.7'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+              <span style={{ fontSize: '22px', color: '#8C8986', lineHeight: 1 }}>+</span>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', fontWeight: 600, color: '#1F1B1D' }}>Create</p>
+                <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 400, color: '#6B6966' }}>new feed</p>
+              </div>
             </div>
-          </div>
 
-          {/* Suggestion */}
-          <div
-            onClick={() => navigate('/suggestion')}
-            style={{
-              border: '1px solid #1F1B1D',
-              borderRadius: '1px',
-              padding: '14px',
-              cursor: 'pointer',
-              background: '#1F1B1D',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              minHeight: '120px',
-              transition: 'opacity 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-          >
-            <RobotIconSmall color="#FFFFFF" />
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', fontWeight: 600, color: '#FFFFFF' }}>Suggestion</p>
-              <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>feed</p>
+            <div onClick={() => navigate('/suggestion')} style={{ border: '1px solid #1F1B1D', borderRadius: '1px', padding: '14px', cursor: 'pointer', background: '#1F1B1D', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', minHeight: '120px', transition: 'opacity 0.15s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+              <RobotIconSmall color="#FFFFFF" />
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', fontWeight: 600, color: '#FFFFFF' }}>Suggestion</p>
+                <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 400, color: 'rgba(255,255,255,0.4)' }}>feed</p>
+              </div>
             </div>
           </div>
         </div>

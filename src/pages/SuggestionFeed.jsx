@@ -117,7 +117,7 @@ export default function SuggestionFeed() {
   return (
     <div className="app-shell">
       <Header />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px 16px 100px' }}>
+      <div className="app-content"><div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px 16px 100px' }}>
         <button
           onClick={() => navigate('/')}
           style={{ fontSize: '18px', color: '#1F1B1D', marginBottom: '12px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, alignSelf: 'flex-start' }}
@@ -156,7 +156,7 @@ export default function SuggestionFeed() {
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '0.07em',
-              color: '#AAA8A4',
+              color: '#6B6966',
               marginBottom: '10px',
             }}>
               Based on your activity
@@ -181,7 +181,7 @@ export default function SuggestionFeed() {
 
         {!hasEnoughData && (
           <div style={cardStyle}>
-            <p style={{ ...labelStyle, color: '#888580' }}>
+            <p style={{ ...labelStyle, color: '#4A4745' }}>
               Open a few feeds first so we can learn your preferences. ({totalOpens}/4 interactions recorded)
             </p>
           </div>
@@ -191,7 +191,7 @@ export default function SuggestionFeed() {
           <p style={{
             fontFamily: "'Archiv Grotesk', sans-serif",
             fontSize: '11px',
-            color: '#888580',
+            color: '#4A4745',
             marginTop: '12px',
             textAlign: 'center',
           }}>
@@ -200,6 +200,7 @@ export default function SuggestionFeed() {
         )}
       </div>
 
+      </div>
       <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '390px', padding: '12px 16px 24px', background: 'linear-gradient(transparent, #F5F4EF 30%)' }}>
         <button
           onClick={handleBuild}
@@ -211,7 +212,7 @@ export default function SuggestionFeed() {
             fontSize: '14px',
             fontWeight: 600,
             letterSpacing: '-0.2px',
-            background: building ? '#888580' : '#1F1B1D',
+            background: building ? '#4A4745' : '#1F1B1D',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: '1px',
