@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Header from '../components/Header'
-import { getFeeds } from '../utils/storage'
+import { getFeeds, deleteFeed } from '../utils/storage'
 import { CATEGORIES } from '../tokens'
 
 const RobotIconSmall = ({ color = '#1F1B1D' }) => (
@@ -41,8 +41,20 @@ const RobotIconSmall = ({ color = '#1F1B1D' }) => (
   </svg>
 )
 
-function FeedCard({ feed, onClick }) {
+function FeedCard({ feed, onClick, onDelete }) {
   const theme = CATEGORIES[feed.category] || CATEGORIES.all
+  const [confirming, setConfirming] = useState(false)
+
+  const handleDelete = (e) => {
+    e.stopPropagation()
+    if (confirming) {
+      onDelete(feed.id)
+    } else {
+      setConfirming(true)
+      setTimeout(() => setConfirming(false), 2500)
+    }
+  }
+
   return (
     <div
       onClick={onClick}
@@ -59,21 +71,44 @@ function FeedCard({ feed, onClick }) {
         transition: 'opacity 0.15s',
         position: 'relative',
       }}
-      onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+      onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
     >
+      {/* Top row: AI badge + delete */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ height: '3px', background: theme.primary, borderRadius: theme.radius, width: '36px' }} />
+        <button
+          onClick={handleDelete}
+          style={{
+            background: confirming ? '#E05252' : 'transparent',
+            border: 'none',
+            borderRadius: '2px',
+            padding: '2px 5px',
+            cursor: 'pointer',
+            fontFamily: "'Archiv Grotesk', sans-serif",
+            fontSize: '9px',
+            fontWeight: 600,
+            color: confirming ? '#FFFFFF' : '#C8C5C0',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            transition: 'all 0.15s',
+            flexShrink: 0,
+          }}
+        >
+          {confirming ? 'sure?' : '×'}
+        </button>
+      </div>
+
       {/* AI badge */}
       {feed.isSuggested && (
         <div style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
-          display: 'flex',
+          display: 'inline-flex',
           alignItems: 'center',
           gap: '3px',
           background: '#1F1B1D',
           borderRadius: theme.radius,
           padding: '2px 6px',
+          alignSelf: 'flex-start',
         }}>
           <RobotIconSmall color="#FFFFFF" />
           <span style={{
@@ -87,13 +122,6 @@ function FeedCard({ feed, onClick }) {
         </div>
       )}
 
-      <div style={{
-        height: '3px',
-        background: theme.primary,
-        borderRadius: theme.radius,
-        width: '36px',
-      }} />
-
       <span style={{
         fontFamily: "'Archiv Grotesk', sans-serif",
         fontSize: '13px',
@@ -101,7 +129,6 @@ function FeedCard({ feed, onClick }) {
         color: '#1F1B1D',
         letterSpacing: '-0.2px',
         marginTop: 'auto',
-        paddingRight: feed.isSuggested ? '36px' : '0',
       }}>
         {feed.name}
       </span>
@@ -126,6 +153,11 @@ export default function Home() {
   useEffect(() => {
     setFeeds(getFeeds())
   }, [])
+
+  const handleDelete = (id) => {
+    deleteFeed(id)
+    setFeeds(getFeeds())
+  }
 
   return (
     <div className="app-shell">
@@ -165,6 +197,7 @@ export default function Home() {
               key={feed.id}
               feed={feed}
               onClick={() => navigate(`/feed/${feed.id}`)}
+              onDelete={handleDelete}
             />
           ))}
 
