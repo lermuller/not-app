@@ -53,55 +53,54 @@ function getLivingGradient(categories) {
 function LivingFeedCard({ onClick }) {
   const config = getLivingFeedConfig()
   const gradient = getLivingGradient(config.categories)
-  const catLabels = config.categories.map(catId => CATEGORIES[catId]?.labelPT).filter(Boolean)
 
   return (
-    <div
-      onClick={onClick}
-      style={{
-        gridColumn: '1 / -1',
-        background: gradient,
-        borderRadius: '2px',
-        padding: '16px',
-        cursor: 'pointer',
-        minHeight: '130px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'opacity 0.15s',
-      }}
-      onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-    >
-      {/* Radial light overlay */}
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 75% 25%, rgba(255,255,255,0.12), transparent 60%)', pointerEvents: 'none' }} />
-
-      {/* Top row */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <RobotIconSmall color="rgba(255,255,255,0.7)" size={16} />
-        <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-          Living feed
-        </span>
-      </div>
-
-      {/* Bottom */}
-      <div>
-        {catLabels.length > 0 && (
-          <div style={{ display: 'flex', gap: '5px', marginBottom: '8px', flexWrap: 'wrap' }}>
-            {catLabels.map(label => (
-              <span key={label} style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px', background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.95)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {label}
-              </span>
-            ))}
+    <div style={{ gridColumn: '1 / -1' }}>
+      {/* Gradient border wrapper */}
+      <div
+        onClick={onClick}
+        style={{
+          background: gradient,
+          borderRadius: '22px',
+          padding: '2px',
+          cursor: 'pointer',
+          transition: 'opacity 0.15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+      >
+        {/* Inner white card */}
+        <div style={{
+          background: '#FFFFFF',
+          borderRadius: '20px',
+          padding: '20px',
+          minHeight: '170px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+        }}>
+          <RobotIconSmall color="#1F1B1D" size={32} />
+          <div>
+            <div style={{
+              fontFamily: "'Archiv Grotesk', sans-serif",
+              fontSize: '18px',
+              fontWeight: 700,
+              color: '#1F1B1D',
+              letterSpacing: '-0.4px',
+              marginBottom: '6px',
+            }}>
+              Living Feed
+            </div>
+            <div style={{
+              fontFamily: "'Archiv Grotesk', sans-serif",
+              fontSize: '13px',
+              fontWeight: 300,
+              color: '#4A4745',
+              lineHeight: 1.5,
+            }}>
+              A feed based on your preferences.<br />Always changing
+            </div>
           </div>
-        )}
-        <div style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '17px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.4px' }}>
-          Para você
-        </div>
-        <div style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginTop: '2px' }}>
-          {catLabels.length > 0 ? 'Aprende com suas preferências' : 'Abra alguns feeds para personalizar'}
         </div>
       </div>
     </div>

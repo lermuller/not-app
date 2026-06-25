@@ -2,7 +2,7 @@ function stripHtml(html = '') {
   return html.replace(/<[^>]*>/g, '').replace(/&[a-z]+;/gi, ' ').trim()
 }
 
-export async function fetchFeed(url, portalName, count = 15) {
+export async function fetchFeed(url, portalName, count = 15, category = null) {
   const encoded = encodeURIComponent(url)
   const res = await fetch(`/api/feed?url=${encoded}&count=${count}`)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -16,12 +16,13 @@ export async function fetchFeed(url, portalName, count = 15) {
     pubDate: item.pubDate,
     thumbnail: item.thumbnail || null,
     portalName,
+    itemCategory: category,
   }))
 }
 
 export async function fetchMultipleFeeds(sources, count = 15) {
   const results = await Promise.allSettled(
-    sources.map(({ url, portalName }) => fetchFeed(url, portalName, count))
+    sources.map(({ url, portalName, category }) => fetchFeed(url, portalName, count, category))
   )
   const items = results
     .filter(r => r.status === 'fulfilled')

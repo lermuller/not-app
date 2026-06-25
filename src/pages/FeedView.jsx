@@ -46,24 +46,45 @@ export default function FeedView() {
 
   useEffect(() => {
     if (isLiving) {
+      const allFeeds = getFeeds()
+      const sources = []
+      const seen = new Set()
+
+      if (allFeeds.length > 0) {
+        allFeeds.forEach(f => {
+          f.portals.forEach(portalId => {
+            const key = `${portalId}-${f.category}`
+            if (seen.has(key)) return
+            seen.add(key)
+            const portal = PORTALS[portalId]
+            if (!portal) return
+            const url = portal.feeds[f.category] || portal.feeds.all
+            if (!url) return
+            sources.push({ url, portalName: portal.name, category: f.category })
+          })
+        })
+      } else {
+        const config = getLivingFeedConfig()
+        config.portals.forEach(portalId => {
+          const portal = PORTALS[portalId]
+          if (!portal) return
+          const url = portal.feeds[config.primaryCategory] || portal.feeds.all
+          if (!url) return
+          sources.push({ url, portalName: portal.name, category: config.primaryCategory })
+        })
+      }
+
       const config = getLivingFeedConfig()
       const virtualFeed = {
         id: 'living',
         name: 'Para você',
-        portals: config.portals,
+        portals: [...new Set(allFeeds.flatMap(f => f.portals))],
         category: config.primaryCategory || 'all',
         categories: config.categories,
         isLiving: true,
       }
       setFeed(virtualFeed)
-      const sources = config.portals.map(portalId => {
-        const portal = PORTALS[portalId]
-        if (!portal) return null
-        const url = portal.feeds[config.primaryCategory] || portal.feeds.all
-        if (!url) return null
-        return { url, portalName: portal.name }
-      }).filter(Boolean)
-      fetchMultipleFeeds(sources, 30)
+      fetchMultipleFeeds(sources, 20)
         .then(data => { setAllItems(data); setLoading(false) })
         .catch(err => { setError(err.message); setLoading(false) })
       return
@@ -308,9 +329,12 @@ export default function FeedView() {
             <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#6B6966' }}>No items found.</p>
           </div>
         )}
-        {visibleItems.map(item => (
-          <NewsCard key={item.id} item={item} theme={theme} />
-        ))}
+        {visibleItems.map(item => {
+          const cardTheme = isLiving && item.itemCategory
+            ? (CATEGORIES[item.itemCategory] || CATEGORIES.all)
+            : theme
+          return <NewsCard key={item.id} item={item} theme={cardTheme} />
+        })}
 
         {/* Load more */}
         {!loading && allItems.length > 0 && (
