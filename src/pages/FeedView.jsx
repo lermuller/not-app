@@ -142,7 +142,7 @@ export default function FeedView() {
     return { pass, fail }
   }
 
-  // Layer 2: Claude semantic validation
+  // Claude semantic validation — handles both category and location
   async function claudeFilter(items, category, location, locationKeywords) {
     if (items.length === 0) return []
     try {
@@ -156,13 +156,13 @@ export default function FeedView() {
           articles: items.map(item => ({ title: item.title, description: item.description })),
         }),
       })
-      if (!res.ok) return items // API error: keep keyword-matched items
+      if (!res.ok) return items
       const data = await res.json()
       if (!Array.isArray(data.indices)) return items
       const filtered = data.indices.map(i => items[i]).filter(Boolean)
-      return filtered // return empty if Claude says nothing qualifies — don't fall back
+      return filtered.length > 0 ? filtered : filtered // empty is valid — city had no local news
     } catch {
-      return items // network error: keep at least keyword-matched items
+      return items
     }
   }
 
@@ -176,21 +176,16 @@ export default function FeedView() {
 
     setFiltering(true)
     try {
-      let toFilter = items
-      let excluded = 0
-
-      // Layer 1: keyword pre-filter for location (fast, no API)
-      if (hasLocation) {
-        const { pass, fail } = keywordPreFilter(items, locationKeywords)
-        toFilter = pass
-        excluded += fail.length
-      }
-
-      // Layer 2: Claude semantic validation
-      const result = await claudeFilter(toFilter, hasCategory ? category : null, location, locationKeywords)
-      excluded += toFilter.length - result.length
-
-      setExcludedCount(excluded)
+      // Send directly to Claude — no keyword pre-filter.
+      // Pre-filtering by keyword was causing false negatives: local news headlines
+      // often don't mention the city name (it's implied for the local reader).
+      const result = await claudeFilter(
+        items,
+        hasCategory ? category : null,
+        hasLocation ? location : null,
+        hasLocation ? locationKeywords : []
+      )
+      setExcludedCount(items.length - result.length)
       return result
     } finally {
       setFiltering(false)
@@ -198,16 +193,12 @@ export default function FeedView() {
   }
 
   function loadFeed(feedData, count) {
-    const city = feedData.cityId ? getCityById(feedData.cityId) : null
-    let portalsUsingCityFeed = 0
-
+    // Use category-specific or general feeds — no city overrides (those URLs were unreliable)
     const sources = feedData.portals
       .map(portalId => {
         const portal = PORTALS[portalId]
         if (!portal) return null
-        const cityOverride = city?.feedOverrides?.[portalId]
-        if (cityOverride) portalsUsingCityFeed++
-        const url = cityOverride || portal.feeds[feedData.category] || portal.feeds.all
+        const url = portal.feeds[feedData.category] || portal.feeds.all
         if (!url) return null
         return { url, portalName: portal.name }
       })
@@ -223,7 +214,7 @@ export default function FeedView() {
     fetchMultipleFeeds(sources, count)
       .then(async data => {
         setLoading(false)
-        const filtered = await filterByCategory(data, feedDataForFilter)
+        const filtered = await filterByCategory(data, feedData)
         setAllItems(filtered)
       })
       .catch(err => { setError(err.message); setLoading(false) })

@@ -1,9 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 
 const CATEGORY_DESC = {
-  sports:   'Sports, athletics, football, basketball, tennis, championships, athletes, teams, games, tournaments',
+  sports:   'Sports, athletics, football, basketball, tennis, championships, athletes, teams, games',
   tech:     'Technology, AI, software, startups, digital products, computing, internet, apps',
-  business: 'Business, economy, finance, companies, investments, market, stock exchange, GDP, startups, industry, commerce',
+  business: 'Business, economy, finance, companies, investments, market, stock exchange, GDP, startups, industry',
   politics: 'Politics, government, elections, parties, legislation, congress, president, ministers',
   news:     'General current events, daily news',
 }
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   if (!articles?.length) return res.json({ indices: [] })
 
   const hasCategory = category && category !== 'all' && CATEGORY_DESC[category]
-  const hasLocation = location && locationKeywords?.length > 0
+  const hasLocation = !!(location)
 
   if (!hasCategory && !hasLocation) {
     return res.json({ indices: articles.map((_, i) => i) })
@@ -24,38 +24,33 @@ export default async function handler(req, res) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    let prompt = `You are a strict news filter. Be conservative — when in doubt, EXCLUDE.\n\n`
+    const articleList = articles
+      .map((a, i) => {
+        const desc = a.description ? ` — ${a.description.slice(0, 80)}` : ''
+        return `${i}. ${a.title}${desc}`
+      })
+      .join('\n')
+
+    let prompt = `You are a strict news filter. Analyze each article and return ONLY the indices that pass ALL rules below.\n\n`
 
     if (hasCategory) {
-      prompt += `TOPIC RULE: Keep ONLY articles clearly about: ${CATEGORY_DESC[category]}
-EXCLUDE: articles about other topics even if tangentially related.\n\n`
+      prompt += `TOPIC RULE: Keep only articles clearly about: ${CATEGORY_DESC[category]}\n\n`
     }
 
     if (hasLocation) {
-      const hints = locationKeywords.slice(0, 12).join(', ')
-      prompt += `LOCATION RULE: Keep ONLY articles about events PHYSICALLY HAPPENING IN or DIRECTLY ADMINISTERED BY "${location}".
-Location keywords: ${hints}
+      const hints = (locationKeywords || []).slice(0, 8).join(', ')
+      prompt += `LOCATION RULE: Keep only articles about events that PHYSICALLY HAPPENED IN "${location}".
 
-EXCLUDE these types even if they mention the city:
-- National/federal policy news (central bank, federal agencies, national prices)
-- International news (foreign governments, global markets, US/Europe events)
-- Companies "based in" the city doing business elsewhere
-- Global commodity prices (oil, currency, interest rates set nationally)
-- Stories where the city is just context, not the subject
-
-INCLUDE only:
-- Events that happened IN the city (local incidents, local announcements)
-- Local government actions (city hall, city council, state government of that city)
-- Local infrastructure, transport, services specific to that city
-- Local business news about that city's economy specifically\n\n`
+INCLUDE: local government actions (city hall, city council), local infrastructure (metro, roads), local incidents, events organized in the city, local policy by city/state government.
+EXCLUDE: national government decisions, international news, global market prices, articles where the city is just the company headquarters, federal agency decisions.
+${hints ? `Local terms to recognize: ${hints}` : ''}\n\n`
     }
 
-    prompt += `Articles to evaluate:
-${articles.map((a, i) => `${i}. ${a.title}`).join('\n')}
+    prompt += `Articles:
+${articleList}
 
-Return ONLY a JSON array of indices to KEEP. Be strict. If unsure, exclude.
-Example: [1, 3, 5]
-If nothing qualifies: []`
+Reply with ONLY a JSON array of indices to keep. Example: [0,2,4]
+If none qualify: []`
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -69,6 +64,7 @@ If nothing qualifies: []`
     res.json({ indices })
 
   } catch (err) {
-    res.status(500).json({ error: err.message, indices: [] })
+    // On error, return all indices so user sees something rather than nothing
+    res.json({ indices: articles.map((_, i) => i), error: err.message })
   }
 }
