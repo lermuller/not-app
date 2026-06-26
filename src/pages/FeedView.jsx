@@ -199,22 +199,31 @@ export default function FeedView() {
 
   function loadFeed(feedData, count) {
     const city = feedData.cityId ? getCityById(feedData.cityId) : null
+    let portalsUsingCityFeed = 0
+
     const sources = feedData.portals
       .map(portalId => {
         const portal = PORTALS[portalId]
         if (!portal) return null
-        // Use city-specific feed override if available — much more accurate than filtering
         const cityOverride = city?.feedOverrides?.[portalId]
+        if (cityOverride) portalsUsingCityFeed++
         const url = cityOverride || portal.feeds[feedData.category] || portal.feeds.all
         if (!url) return null
         return { url, portalName: portal.name }
       })
       .filter(Boolean)
 
+    // If most portals have city-specific feeds, skip location keyword filter —
+    // the feed content is already local by definition
+    const skipLocationFilter = portalsUsingCityFeed > 0 && portalsUsingCityFeed >= sources.length / 2
+    const feedDataForFilter = skipLocationFilter
+      ? { ...feedData, locationKeywords: [], location: null }
+      : feedData
+
     fetchMultipleFeeds(sources, count)
       .then(async data => {
         setLoading(false)
-        const filtered = await filterByCategory(data, feedData)
+        const filtered = await filterByCategory(data, feedDataForFilter)
         setAllItems(filtered)
       })
       .catch(err => { setError(err.message); setLoading(false) })
