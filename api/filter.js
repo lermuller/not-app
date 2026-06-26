@@ -1,11 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk'
 
 const CATEGORY_DESC = {
-  sports:   'Esportes, futebol, basquete, tênis, atletismo, campeonatos, times, atletas — Sports, football, basketball, tennis, athletes',
-  tech:     'Tecnologia, inteligência artificial, software, startups, produtos digitais — Technology, AI, software, startups, digital products',
-  business: 'Negócios, economia, mercado financeiro, empresas, investimentos, inflação, PIB, bolsa — Business, economy, finance, market, investments',
-  politics: 'Política, governo, eleições, partidos, legislação, congresso, ministérios — Politics, government, elections, legislation',
-  news:     'Atualidades gerais, acontecimentos do dia — General current events',
+  sports:   'Sports, athletics, football, basketball, tennis, championships, athletes, teams, games, tournaments',
+  tech:     'Technology, AI, software, startups, digital products, computing, internet, apps',
+  business: 'Business, economy, finance, companies, investments, market, stock exchange, GDP, startups, industry, commerce',
+  politics: 'Politics, government, elections, parties, legislation, congress, president, ministers',
+  news:     'General current events, daily news',
 }
 
 export default async function handler(req, res) {
@@ -24,36 +24,51 @@ export default async function handler(req, res) {
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    const criteria = []
+    let prompt = `You are a strict news filter. Be conservative — when in doubt, EXCLUDE.\n\n`
+
     if (hasCategory) {
-      criteria.push(`TOPIC — keep only articles about: ${CATEGORY_DESC[category]}`)
+      prompt += `TOPIC RULE: Keep ONLY articles clearly about: ${CATEGORY_DESC[category]}
+EXCLUDE: articles about other topics even if tangentially related.\n\n`
     }
+
     if (hasLocation) {
-      const hints = locationKeywords.slice(0, 10).join(', ')
-      criteria.push(`LOCATION — keep only articles about events happening IN "${location}" (hints: ${hints}). Exclude articles that merely mention the city without being about a local event.`)
+      const hints = locationKeywords.slice(0, 12).join(', ')
+      prompt += `LOCATION RULE: Keep ONLY articles about events PHYSICALLY HAPPENING IN or DIRECTLY ADMINISTERED BY "${location}".
+Location keywords: ${hints}
+
+EXCLUDE these types even if they mention the city:
+- National/federal policy news (central bank, federal agencies, national prices)
+- International news (foreign governments, global markets, US/Europe events)
+- Companies "based in" the city doing business elsewhere
+- Global commodity prices (oil, currency, interest rates set nationally)
+- Stories where the city is just context, not the subject
+
+INCLUDE only:
+- Events that happened IN the city (local incidents, local announcements)
+- Local government actions (city hall, city council, state government of that city)
+- Local infrastructure, transport, services specific to that city
+- Local business news about that city's economy specifically\n\n`
     }
 
-    const prompt = `Filter news articles. Keep ONLY articles matching ALL criteria below:
-
-${criteria.map((c, i) => `${i + 1}. ${c}`).join('\n\n')}
-
-Articles:
+    prompt += `Articles to evaluate:
 ${articles.map((a, i) => `${i}. ${a.title}`).join('\n')}
 
-Reply ONLY with a JSON array of indices to keep. Example: [0,2,5]
-If none match, return: []`
+Return ONLY a JSON array of indices to KEEP. Be strict. If unsure, exclude.
+Example: [1, 3, 5]
+If nothing qualifies: []`
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 150,
+      max_tokens: 200,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const text = response.content[0].text.trim()
     const match = text.match(/\[[\d,\s]*\]/)
-    const indices = match ? JSON.parse(match[0]) : articles.map((_, i) => i)
+    const indices = match ? JSON.parse(match[0]) : []
     res.json({ indices })
-  } catch {
-    res.json({ indices: articles.map((_, i) => i) })
+
+  } catch (err) {
+    res.status(500).json({ error: err.message, indices: [] })
   }
 }

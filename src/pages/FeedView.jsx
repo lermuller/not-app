@@ -119,13 +119,23 @@ export default function FeedView() {
     setShowInstallModal(true)
   }
 
-  async function filterByCategory(items, feedData) {
-    const { category, location, locationKeywords } = feedData
-    const hasCategory = category && category !== 'all'
-    const hasLocation = location && locationKeywords?.length > 0
-    if (!hasCategory && !hasLocation) return items
-    if (items.length === 0) return items
-    setFiltering(true)
+  // Layer 1: fast client-side keyword pre-filter
+  function keywordPreFilter(items, locationKeywords) {
+    if (!locationKeywords?.length) return { pass: items, fail: [] }
+    const lower = locationKeywords.map(k => k.toLowerCase())
+    const pass = []
+    const fail = []
+    items.forEach(item => {
+      const text = (item.title + ' ' + (item.description || '')).toLowerCase()
+      const hit = lower.some(kw => kw.length >= 3 && text.includes(kw))
+      ;(hit ? pass : fail).push(item)
+    })
+    return { pass, fail }
+  }
+
+  // Layer 2: Claude semantic validation
+  async function claudeFilter(items, category, location, locationKeywords) {
+    if (items.length === 0) return []
     try {
       const res = await fetch('/api/filter', {
         method: 'POST',
@@ -134,16 +144,45 @@ export default function FeedView() {
           category,
           location: location || null,
           locationKeywords: locationKeywords || [],
-          articles: items.map(item => ({ title: item.title })),
+          articles: items.map(item => ({ title: item.title, description: item.description })),
         }),
       })
+      if (!res.ok) return items // API error: keep keyword-matched items
       const data = await res.json()
+      if (!Array.isArray(data.indices)) return items
       const filtered = data.indices.map(i => items[i]).filter(Boolean)
-      const result = filtered.length > 0 ? filtered : items
-      setExcludedCount(items.length - result.length)
-      return result
+      return filtered // return empty if Claude says nothing qualifies — don't fall back
     } catch {
-      return items
+      return items // network error: keep at least keyword-matched items
+    }
+  }
+
+  async function filterByCategory(items, feedData) {
+    const { category, location, locationKeywords } = feedData
+    const hasCategory = category && category !== 'all'
+    const hasLocation = location && locationKeywords?.length > 0
+
+    if (!hasCategory && !hasLocation) return items
+    if (items.length === 0) return items
+
+    setFiltering(true)
+    try {
+      let toFilter = items
+      let excluded = 0
+
+      // Layer 1: keyword pre-filter for location (fast, no API)
+      if (hasLocation) {
+        const { pass, fail } = keywordPreFilter(items, locationKeywords)
+        toFilter = pass
+        excluded += fail.length
+      }
+
+      // Layer 2: Claude semantic validation
+      const result = await claudeFilter(toFilter, hasCategory ? category : null, location, locationKeywords)
+      excluded += toFilter.length - result.length
+
+      setExcludedCount(excluded)
+      return result
     } finally {
       setFiltering(false)
     }
