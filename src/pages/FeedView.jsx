@@ -6,6 +6,7 @@ import { CATEGORIES, PORTALS } from '../tokens'
 import { getFeeds, deleteFeed, trackOpen, getLivingFeedConfig } from '../utils/storage'
 import { fetchMultipleFeeds } from '../utils/rss'
 import { prepareInstall, detectPlatform, isAlreadyInstalled } from '../utils/pwa'
+import { getCityById } from '../utils/cities'
 
 function renderBold(text) {
   if (!text) return null
@@ -127,7 +128,15 @@ export default function FeedView() {
     const fail = []
     items.forEach(item => {
       const text = (item.title + ' ' + (item.description || '')).toLowerCase()
-      const hit = lower.some(kw => kw.length >= 3 && text.includes(kw))
+      // Allow all keywords regardless of length — "SP", "RJ", "BH" are valid 2-char codes
+      const hit = lower.some(kw => {
+        if (kw.length < 2) return false
+        // For short keywords (2-3 chars), require word boundary to avoid false matches
+        if (kw.length <= 3) {
+          return new RegExp(`\\b${kw}\\b`, 'i').test(text)
+        }
+        return text.includes(kw)
+      })
       ;(hit ? pass : fail).push(item)
     })
     return { pass, fail }
@@ -189,11 +198,14 @@ export default function FeedView() {
   }
 
   function loadFeed(feedData, count) {
+    const city = feedData.cityId ? getCityById(feedData.cityId) : null
     const sources = feedData.portals
       .map(portalId => {
         const portal = PORTALS[portalId]
         if (!portal) return null
-        const url = portal.feeds[feedData.category] || portal.feeds.all
+        // Use city-specific feed override if available — much more accurate than filtering
+        const cityOverride = city?.feedOverrides?.[portalId]
+        const url = cityOverride || portal.feeds[feedData.category] || portal.feeds.all
         if (!url) return null
         return { url, portalName: portal.name }
       })

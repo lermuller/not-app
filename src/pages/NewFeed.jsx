@@ -3,60 +3,35 @@ import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import { CATEGORIES, PORTALS } from '../tokens'
 import { saveFeed, generateId } from '../utils/storage'
+import { BRAZIL_CAPITALS } from '../utils/cities'
 
 const TOPIC_ORDER = ['all', 'sports', 'politics', 'news', 'tech', 'business']
-
-function getLocationShort(location) {
-  if (!location) return null
-  const parts = location.split(',')
-  return parts[parts.length - 1].trim()
-}
 
 export default function NewFeed() {
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [selectedPortals, setSelectedPortals] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
-  const [location, setLocation] = useState('')
+  const [selectedCityId, setSelectedCityId] = useState('')
   const [building, setBuilding] = useState(false)
-  const [buildingStep, setBuildingStep] = useState('')
 
   const togglePortal = (id) => setSelectedPortals(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id])
   const activeTheme = selectedCategory ? CATEGORIES[selectedCategory] : null
   const canBuild = name.trim().length > 0 && selectedPortals.length > 0 && selectedCategory
+  const selectedCity = BRAZIL_CAPITALS.find(c => c.id === selectedCityId) || null
 
-  const handleBuild = async () => {
+  const handleBuild = () => {
     if (!canBuild || building) return
     setBuilding(true)
-
-    let locationKeywords = []
-    let locationShort = null
-
-    if (location.trim()) {
-      setBuildingStep('Generating location keywords...')
-      try {
-        const res = await fetch('/api/geo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ location: location.trim() }),
-        })
-        const data = await res.json()
-        locationKeywords = data.keywords || []
-        locationShort = getLocationShort(location.trim())
-      } catch {
-        // proceed without location filter if geo fails
-      }
-    }
-
-    setBuildingStep('Building...')
     const feed = {
       id: generateId(),
       name: name.trim(),
       portals: selectedPortals,
       category: selectedCategory,
-      location: location.trim() || null,
-      locationShort,
-      locationKeywords,
+      cityId: selectedCity?.id || null,
+      location: selectedCity ? `${selectedCity.name}, ${selectedCity.state}` : null,
+      locationShort: selectedCity?.short || null,
+      locationKeywords: selectedCity?.keywords || [],
       createdAt: new Date().toISOString(),
     }
     saveFeed(feed)
@@ -110,22 +85,48 @@ export default function NewFeed() {
             </div>
           </div>
 
-          {/* Location — new field */}
+          {/* City dropdown */}
           <div style={{ marginBottom: '28px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <label style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', fontWeight: 500, color: '#4A4745' }}>Location filter</label>
+              <label style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', fontWeight: 500, color: '#4A4745' }}>City filter</label>
               <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '10px', color: '#6B6966' }}>optional</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #E0DDD8', paddingBottom: '8px' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6966" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', borderBottom: '1px solid #E0DDD8', paddingBottom: '8px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6966" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginRight: '8px' }} aria-hidden="true">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
               </svg>
-              <input value={location} onChange={e => setLocation(e.target.value)} placeholder="São Paulo, SP"
-                style={{ flex: 1, fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '14px', fontWeight: 400, color: '#1F1B1D', background: 'none', border: 'none', outline: 'none' }} />
+              <select
+                value={selectedCityId}
+                onChange={e => setSelectedCityId(e.target.value)}
+                style={{
+                  flex: 1,
+                  fontFamily: "'Archiv Grotesk', sans-serif",
+                  fontSize: '14px',
+                  fontWeight: selectedCityId ? 500 : 400,
+                  color: selectedCityId ? '#1F1B1D' : '#6B6966',
+                  background: 'none',
+                  border: 'none',
+                  outline: 'none',
+                  appearance: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="">Select a capital city...</option>
+                {BRAZIL_CAPITALS.map(city => (
+                  <option key={city.id} value={city.id}>
+                    {city.name} — {city.state}
+                  </option>
+                ))}
+              </select>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6B6966" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
             </div>
-            <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', color: '#6B6966', marginTop: '5px', lineHeight: 1.5 }}>
-              Only shows news about events in this city
-            </p>
+            {selectedCity && (
+              <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', color: '#6B6966', marginTop: '6px', lineHeight: 1.5 }}>
+                Only shows news about events in {selectedCity.name}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -133,7 +134,7 @@ export default function NewFeed() {
       <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '390px', padding: '12px 16px 24px', background: 'linear-gradient(transparent, #FAFAFA 30%)' }}>
         <button onClick={handleBuild} disabled={!canBuild || building}
           style={{ width: '100%', padding: '16px', fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '14px', fontWeight: 600, letterSpacing: '-0.2px', background: canBuild ? (activeTheme?.primary || '#1F1B1D') : '#E0DDD8', color: canBuild ? '#FFFFFF' : '#6B6966', border: 'none', borderRadius: activeTheme?.radius || '1px', cursor: canBuild ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}>
-          {building ? buildingStep || 'Building...' : 'Build'}
+          {building ? 'Building...' : 'Build'}
         </button>
       </div>
     </div>
