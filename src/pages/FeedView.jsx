@@ -193,7 +193,6 @@ export default function FeedView() {
   }
 
   function loadFeed(feedData, count) {
-    // Use category-specific or general feeds — no city overrides (those URLs were unreliable)
     const sources = feedData.portals
       .map(portalId => {
         const portal = PORTALS[portalId]
@@ -203,13 +202,6 @@ export default function FeedView() {
         return { url, portalName: portal.name }
       })
       .filter(Boolean)
-
-    // If most portals have city-specific feeds, skip location keyword filter —
-    // the feed content is already local by definition
-    const skipLocationFilter = portalsUsingCityFeed > 0 && portalsUsingCityFeed >= sources.length / 2
-    const feedDataForFilter = skipLocationFilter
-      ? { ...feedData, locationKeywords: [], location: null }
-      : feedData
 
     fetchMultipleFeeds(sources, count)
       .then(async data => {
