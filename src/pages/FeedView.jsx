@@ -43,6 +43,7 @@ export default function FeedView() {
   const [filtering, setFiltering] = useState(false)
   const [showInstallModal, setShowInstallModal] = useState(false)
   const [installed, setInstalled] = useState(false)
+  const [excludedCount, setExcludedCount] = useState(0)
 
   const isLiving = id === 'living'
   const theme = feed ? (CATEGORIES[feed.category] || CATEGORIES.all) : CATEGORIES.all
@@ -118,8 +119,12 @@ export default function FeedView() {
     setShowInstallModal(true)
   }
 
-  async function filterByCategory(items, category) {
-    if (!category || category === 'all' || items.length === 0) return items
+  async function filterByCategory(items, feedData) {
+    const { category, location, locationKeywords } = feedData
+    const hasCategory = category && category !== 'all'
+    const hasLocation = location && locationKeywords?.length > 0
+    if (!hasCategory && !hasLocation) return items
+    if (items.length === 0) return items
     setFiltering(true)
     try {
       const res = await fetch('/api/filter', {
@@ -127,12 +132,16 @@ export default function FeedView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           category,
+          location: location || null,
+          locationKeywords: locationKeywords || [],
           articles: items.map(item => ({ title: item.title })),
         }),
       })
       const data = await res.json()
       const filtered = data.indices.map(i => items[i]).filter(Boolean)
-      return filtered.length > 0 ? filtered : items
+      const result = filtered.length > 0 ? filtered : items
+      setExcludedCount(items.length - result.length)
+      return result
     } catch {
       return items
     } finally {
@@ -154,7 +163,7 @@ export default function FeedView() {
     fetchMultipleFeeds(sources, count)
       .then(async data => {
         setLoading(false)
-        const filtered = await filterByCategory(data, feedData.category)
+        const filtered = await filterByCategory(data, feedData)
         setAllItems(filtered)
       })
       .catch(err => { setError(err.message); setLoading(false) })
@@ -397,9 +406,17 @@ export default function FeedView() {
               })}
             </div>
           ) : (
-            <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', background: theme.primary, color: '#FFFFFF', padding: '3px 9px', borderRadius: theme.radius, flexShrink: 0, marginLeft: '8px', marginBottom: '2px' }}>
-              {theme.labelPT}
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', marginLeft: '8px', marginBottom: '2px', flexShrink: 0 }}>
+              <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', background: theme.primary, color: '#FFFFFF', padding: '3px 9px', borderRadius: theme.radius }}>
+                {theme.labelPT}
+              </span>
+              {feed.location && (
+                <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '9px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(0,0,0,0.08)', color: '#1F1B1D', padding: '3px 7px', borderRadius: theme.radius, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  {feed.locationShort || feed.location.split(',')[0]}
+                </span>
+              )}
+            </div>
           )}
         </div>
         <div style={{ height: '2px', background: isLiving ? 'rgba(255,255,255,0.3)' : theme.primary, borderRadius: isLiving ? '1px' : theme.radius }} />
@@ -453,7 +470,9 @@ export default function FeedView() {
         {(loading || filtering) && (
           <div style={{ padding: '32px 0', textAlign: 'center' }}>
             <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', color: '#6B6966' }}>
-              {filtering ? `Filtering for ${theme.labelPT}...` : 'Loading feed...'}
+              {filtering
+                ? `Filtering${feed?.location ? ` for ${feed.location}` : ''}...`
+                : 'Loading feed...'}
             </p>
           </div>
         )}
@@ -477,10 +496,22 @@ export default function FeedView() {
               item={item}
               theme={cardTheme}
               showCategoryTag={isLiving}
+              geoTag={!isLiving && feed?.locationShort}
               onArticleClick={isLiving ? (cat) => { if (cat) trackOpen(cat) } : null}
             />
           )
         })}
+
+        {/* Excluded count indicator */}
+        {!loading && !filtering && excludedCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 2px', marginTop: '2px' }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6B6966" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <span style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '10px', color: '#6B6966' }}>
+              {excludedCount} article{excludedCount !== 1 ? 's' : ''} excluded
+              {feed?.location ? ` outside ${feed.locationShort || feed.location.split(',')[0]}` : ' by topic filter'}
+            </span>
+          </div>
+        )}
 
         {/* Load more */}
         {!loading && !filtering && allItems.length > 0 && (
