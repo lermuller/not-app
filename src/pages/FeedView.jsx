@@ -5,6 +5,7 @@ import NewsCard from '../components/NewsCard'
 import { CATEGORIES, PORTALS } from '../tokens'
 import { getFeeds, deleteFeed, trackOpen, getLivingFeedConfig } from '../utils/storage'
 import { fetchMultipleFeeds } from '../utils/rss'
+import { prepareInstall, detectPlatform, isAlreadyInstalled } from '../utils/pwa'
 
 function renderBold(text) {
   if (!text) return null
@@ -40,6 +41,8 @@ export default function FeedView() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const [filtering, setFiltering] = useState(false)
+  const [showInstallModal, setShowInstallModal] = useState(false)
+  const [installed, setInstalled] = useState(false)
 
   const isLiving = id === 'living'
   const theme = feed ? (CATEGORIES[feed.category] || CATEGORIES.all) : CATEGORIES.all
@@ -105,6 +108,15 @@ export default function FeedView() {
     trackOpen(found.category)
     loadFeed(found, 30)
   }, [id])
+
+  useEffect(() => {
+    setInstalled(isAlreadyInstalled())
+  }, [])
+
+  const handleInstall = () => {
+    prepareInstall(feed, theme)
+    setShowInstallModal(true)
+  }
 
   async function filterByCategory(items, category) {
     if (!category || category === 'all' || items.length === 0) return items
@@ -210,6 +222,68 @@ export default function FeedView() {
     <div className="app-shell">
       <Header />
 
+      {/* Install modal */}
+      {showInstallModal && feed && (
+        <div onClick={() => setShowInstallModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 200 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '390px', background: '#FAFAFA', padding: '24px 20px 36px', borderRadius: '10px 10px 0 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: theme.radius, background: theme.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12l7 7 7-7"/>
+                </svg>
+              </div>
+              <div>
+                <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '15px', fontWeight: 700, color: '#1F1B1D', letterSpacing: '-0.3px' }}>
+                  Add "{feed.name}" to your home screen
+                </p>
+              </div>
+            </div>
+
+            {detectPlatform() === 'ios' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                {[
+                  { n: '1', text: 'Tap the Share button', detail: 'the ↑ icon at the bottom of Safari' },
+                  { n: '2', text: 'Select "Add to Home Screen"', detail: 'scroll down in the share sheet' },
+                  { n: '3', text: 'Tap "Add"', detail: `the app will appear as "${feed.name}"` },
+                ].map(step => (
+                  <div key={step.n} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: theme.primary, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>{step.n}</div>
+                    <div>
+                      <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 600, color: '#1F1B1D' }}>{step.text}</p>
+                      <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', color: '#4A4745' }}>{step.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : detectPlatform() === 'android' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                {[
+                  { n: '1', text: 'Tap the menu (⋮)', detail: 'top right corner of Chrome' },
+                  { n: '2', text: 'Select "Add to Home Screen"', detail: 'or "Install app"' },
+                  { n: '3', text: 'Confirm install', detail: `will appear as "${feed.name}"` },
+                ].map(step => (
+                  <div key={step.n} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: theme.primary, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>{step.n}</div>
+                    <div>
+                      <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 600, color: '#1F1B1D' }}>{step.text}</p>
+                      <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '11px', color: '#4A4745' }}>{step.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', color: '#4A4745', marginBottom: '20px', lineHeight: 1.6 }}>
+                Open this page on your iPhone or Android and tap "Add to Home Screen" from the browser menu.
+              </p>
+            )}
+
+            <button onClick={() => setShowInstallModal(false)} style={{ width: '100%', padding: '14px', fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '13px', fontWeight: 600, background: theme.primary, color: '#FFFFFF', border: 'none', borderRadius: theme.radius, cursor: 'pointer' }}>
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Delete confirmation dialog */}
       {showDeleteDialog && (
         <div
@@ -268,25 +342,44 @@ export default function FeedView() {
       <div style={{ padding: '16px 16px 0', background: isLiving ? getLivingGradient(feed?.categories) : '#FAFAFA' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           <button onClick={() => navigate('/')} style={{ fontSize: '18px', color: isLiving ? 'rgba(255,255,255,0.9)' : '#1F1B1D', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>←</button>
-          {!isLiving && (
-            <button
-              onClick={() => setShowDeleteDialog(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                fontFamily: "'Archiv Grotesk', sans-serif",
-                fontSize: '13px', fontWeight: 500,
-                color: '#4A4745',
-                background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
-                <path d="M10 11v6"/><path d="M14 11v6"/>
-                <path d="M9 6V4h6v2"/>
-              </svg>
-              Delete
-            </button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {!installed && feed && (
+              <button
+                onClick={handleInstall}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '12px', fontWeight: 500,
+                  color: isLiving ? 'rgba(255,255,255,0.8)' : '#4A4745',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>
+                  <path d="M9 6h6"/>
+                </svg>
+                Add
+              </button>
+            )}
+            {!isLiving && (
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  fontFamily: "'Archiv Grotesk', sans-serif",
+                  fontSize: '13px', fontWeight: 500,
+                  color: '#4A4745',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                  <path d="M10 11v6"/><path d="M14 11v6"/>
+                  <path d="M9 6V4h6v2"/>
+                </svg>
+                Delete
+              </button>
+            )}
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '12px' }}>
           <h1 style={{ fontFamily: "'Archiv Grotesk', sans-serif", fontSize: '24px', fontWeight: 700, color: isLiving ? '#FFFFFF' : '#1F1B1D', letterSpacing: '-0.6px', lineHeight: 1.1 }}>
